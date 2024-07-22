@@ -1,0 +1,12 @@
+
+model {
+# Prior
+alpha ~ dnorm(0, 0.0001)    # Intercept
+beta ~ dnorm(0, 0.0001)     # Slope
+
+# Likelihood for a Poisson GLM
+for (i in 1:n) {            # Loop over 31 data points
+  y[i] ~ dpois(lambda[i])   # Response
+  lambda[i] <- exp(alpha + beta * x[i])  # link function & linear predictor
+}
+}
