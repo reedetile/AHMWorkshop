@@ -133,15 +133,16 @@ library(ASMbook); library(jagsUI); library(rstan); library(TMB)
 # Load unmarked, format data into unmarked data frame and summarize
 # We add the new observation covariate 'date' in as well
 library(unmarked)
-summary( umf <- unmarkedFrameOccu(y = y,              # The observed data
-          siteCovs = data.frame(humidity = humidity), # Site covs
-		  obsCovs = list(date = date)) )              # Observational covs
-
+umf <- unmarkedFrameOccu(y = y,              # The observed data. Needs to be a matrix of data
+                         siteCovs = data.frame(humidity = humidity), # Site covs
+                         obsCovs = list(date = date)) # Observational covs. Also needs to be a matrix
+summary(umf)
 
 # Fit model and extract estimates (not including survey date)
 # ----------------------------------------------------------
 # Detection covariates follow first tilde, then occupancy covariates
-summary(out19.3 <- occu(~humidity ~humidity, data = umf))
+out19.3 <- occu(~humidity ~humidity, data = umf)
+summary(out19.3)
 out19.3@opt                             # Remember unmarked is wrapper for optim() !
 unm_est <- coef(out19.3)                # Save estimates
 
@@ -188,7 +189,7 @@ polygon(c(humidity[ooo], rev(humidity[ooo])), c(p.LCL[ooo,1], rev(p.UCL[ooo,1]))
 ranef(out19.3)                          # Extract empirical Bayes estimates of z
 z_eBayes <- ranef(out19.3)@post[,2,1]  
 unm_Nz <- round(sum(z_eBayes), 2)       # Sum up to get number of occupied sites in sample
-
+unm_Nz
 # What is that ???
 # From Bayes rule, have this:
 # zhat <- (1-phat)*psihat / (1 - psihat + psihat*(1-phat))                 # for one visit
@@ -306,7 +307,7 @@ params <- c("alpha.occ","beta.occ", "alpha.p", "beta.p", "occ.fs", "occ.int", "p
 # MCMC settings
 na <- 5000 ; ni <- 50000 ; nb <- 10000 ; nc <- 4 ; nt <- 10
 
-# Call JAGS (ART 60 sec), check convergence, summarize posteriors and save results
+# Call JAGS (ART 60 sec), check convergence, summarize posteriors and save results. 
 out19.4 <- jags(dataList, inits, params, "model19.4.txt", n.iter = ni, n.burnin = nb,
   n.chains = nc, n.thin = nt, n.adapt = na, parallel = TRUE)
 jagsUI::traceplot(out19.4) # not shown
