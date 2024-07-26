@@ -1,0 +1,18 @@
+
+model {
+# Priors and linear models
+alpha ~ dunif(-10, 10)  # Abundance intercept on log scale
+mean.lam <- exp(alpha)  # Abundance intercept on natural scale
+beta ~ dnorm(0, 0.0001)   # Slope on elevation
+
+# Likelihood for data set 3
+for (k in 1:nsites3){       # Data set 3
+  y[k] ~ dbern(psi[k])
+  cloglog(psi[k]) <- alpha + beta * selev3[k]
+
+  # Alternative implementation of same model for data set 3
+  # y[k] ~ dbern(psi[k])
+  # psi[k] <- 1 - exp(-lambda3[k])
+  # log(lambda3[k]) <- alpha + beta * selev3[k]
+}
+}

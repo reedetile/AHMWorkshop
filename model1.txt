@@ -1,0 +1,13 @@
+
+model {
+# Priors and linear models
+alpha ~ dunif(-10, 10)  # Abundance intercept on log scale
+mean.lam <- exp(alpha)  # Abundance intercept on natural scale
+beta ~ dnorm(0, 0.0001) # Slope on elevation
+
+# Likelihood for data set 1
+for (i in 1:nsites1){       # Data set 1
+  C1[i] ~ dpois(lambda1[i])
+  log(lambda1[i]) <- alpha + beta * selev1[i]
+}
+}

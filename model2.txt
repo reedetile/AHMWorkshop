@@ -1,0 +1,13 @@
+
+model {
+# Priors and linear models
+alpha ~ dunif(-10, 10)  # Abundance intercept on log scale
+mean.lam <- exp(alpha)  # Abundance intercept on natural scale
+beta ~ dnorm(0, 0.0001) # Slope on elevation
+
+# Zero-truncated Poisson likelihood for data set 2
+for (j in 1:nsites2){       # Data set 1
+  C2[j] ~ dpois(lambda1[j])T(1,) # truncation is accommodated easily !
+  log(lambda1[j]) <- alpha + beta * selev2[j]
+}
+}
