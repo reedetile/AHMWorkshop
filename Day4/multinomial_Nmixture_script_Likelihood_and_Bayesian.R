@@ -540,10 +540,10 @@ n.burnin=nb, n.iter=ni, parallel=TRUE)
 print(out2, digits=3)
        
 mean(out2$sims.list$fit1.pred > out2$sims.list$fit1.data)
-[1] 0.714
+# [1] 0.714
 
 mean(out2$sims.list$fit2.pred > out2$sims.list$fit2.data)
-[1] 0.4066667
+# [1] 0.4066667
 
   
  
@@ -605,6 +605,88 @@ out4 <- jags(data, inits, parameters, "modelP.txt", n.thin=nt,
    n.chains = nc, n.burnin = nb, n.iter = ni,parallel=FALSE)
 print(out4, 3)
 
+
+
+
+### Exercise 2: Expand model to include a discrete land unit effect and see if that is sig or 
+####changes the effects of the covars. Might consider including an interaction between covars and
+### land unit
+
+ovendata.list$covariates$unit <- c(rep(0, times = 35),rep(1,times = 35))
+ovendata.list$covariates$unit <- as.numeric(ovendata.list$covariates$unit)
+
+ovenFrame_Units <- unmarkedFrameMPois(y = ovendata.list$data,
+                                siteCovs = as.data.frame(scale(ovendata.list$covariates[,-1])),
+                                type = "removal")
+
+# Harvest the data and bundle it up for sending to BUGS
+# y = removal counts (4 successive time periods -- "mental" removal)
+
+y_units <- as.matrix(getY(ovenFrame_Units))
+ncap_units <- apply(y_units, 1, sum)   # number of individuals removed per point
+
+# Bundle the data
+data_units <- list(y = y_units, 
+             M = nrow(y_units), 
+             n = ncap_units, 
+             X=as.matrix(siteCovs(ovenFrame_Units)))
+str(data_units)                  # Good practice to always inspect your BUGS data
+
+
+# Write BUGS model
+cat("
+model {
+
+# Prior distributions
+p0 ~ dunif(0,1)
+alpha0 <- logit(p0)
+alpha1 ~ dnorm(0, 0.01)
+beta0 ~ dnorm(0, 0.01)
+beta1 ~ dnorm(0, 0.01)
+beta2 ~ dnorm(0, 0.01)
+beta3 ~ dnorm(0, 0.01)
+beta4 ~ dnorm(0, 0.01)
+
+for(i in 1:M){ # Loop over sites
+   # Conditional multinomial cell probabilities
+   pi[i,1] <- p[i]
+   pi[i,2] <- p[i]*(1-p[i])
+   pi[i,3] <- p[i]*(1-p[i])*(1-p[i])
+   pi[i,4] <- p[i]*(1-p[i])*(1-p[i])*(1-p[i])
+   pi0[i] <- 1 - (pi[i,1] + pi[i,2] + pi[i,3] + pi[i,4])
+   pcap[i] <- 1 - pi0[i]
+   for(j in 1:4){
+      pic[i,j] <- pi[i,j] / pcap[i]
+   }
+
+   # logit-linear model for detection: understory cover effect
+   logit(p[i]) <- alpha0 + alpha1 * X[i,1]
+
+   # Model specification, three parts:
+   y[i,1:4] ~ dmulti(pic[i,1:4], n[i]) # component 1 uses the conditional
+                                       #    cell probabilities
+   n[i] ~ dbin(pcap[i], N[i])          # component 2 is a model for the
+                                       #    observed sample size 
+   N[i] ~ dpois(lambda[i])             # component 3 is the process model
+
+   # log-linear model for abundance: UFC + TRBA + UFC:TRBA+Unit
+ log(lambda[i])<- beta0 + beta1*X[i,1] + beta2*X[i,2] + beta3*X[i,2]*X[i,1]+beta4*X[i,3]
+}
+}
+",fill=TRUE, file="model_unit.txt")
+
+parameters_unit <- c("N", "p0", "beta0", "beta1", "beta2", "beta3","beta4")
+
+out_unit <- jags (data_units, inits, parameters_unit, "model_unit.txt",n.thin=nt, n.chains=nc, 
+              n.burnin=nb, n.iter=ni, parallel=TRUE)
+
+print(out_unit, digits=3)
+
+mean(out_unit$sims.list$fit1.pred > out_unit$sims.list$fit1.data)
+# [1] 0.714
+
+mean(out2$sims.list$fit2.pred > out2$sims.list$fit2.data)
+# [1] 0.4066667
 
 #########################################################################
 #
@@ -669,7 +751,7 @@ intervalMat <- matrix(c("1", "2", "3"), 50, 3, byrow = TRUE)
 class(alfl.H1) <- "matrix"
 o2y <- matrix(1, 3, 7)  # This is the correct obsToY matrix for capture-recapture. Trust me.
 
-# Occasion is index to primary... should be YearlySiteCov but using this to illustrate
+# SESSION is index to primary... should be YearlySiteCov but using this to illustrate
 occ <- matrix(NA, nrow = 50, ncol = 9)
 occ[, 1:3]<- 1
 occ[, 4:6]<- 2
@@ -727,9 +809,11 @@ modSel(fl)
 
 
 summary(alfl.umf <- unmarkedFrameGMM(y = Ywide,
-siteCovs = alfl.covs[,c("woody", "struct")], obsCovs = list(occ = occ),
-numPrimary = 3, yearlySiteCovs = list(time = time, date = date),
-obsToY = o2y, piFun = "crPiFun") )
+                                     siteCovs = alfl.covs[,c("woody", "struct")], 
+                                     obsCovs = list(occ = occ),
+                                     numPrimary = 3, 
+                                     yearlySiteCovs = list(time = time, date =date),
+                                     obsToY = o2y, piFun = "crPiFun") )
 
 # 
 # Fit a suite of models with detection covariates on p or phi (availability) or both

@@ -9,6 +9,7 @@ beta0 ~ dnorm(0, 0.01)
 beta1 ~ dnorm(0, 0.01)
 beta2 ~ dnorm(0, 0.01)
 beta3 ~ dnorm(0, 0.01)
+beta4 ~ dnorm(0, 0.01)
 
 for(i in 1:M){ # Loop over sites
    # Conditional multinomial cell probabilities
@@ -32,8 +33,8 @@ for(i in 1:M){ # Loop over sites
                                        #    observed sample size 
    N[i] ~ dpois(lambda[i])             # component 3 is the process model
 
-   # log-linear model for abundance: UFC + TRBA + UFC:TRBA
- log(lambda[i])<- beta0 + beta1*X[i,1] + beta2*X[i,2] + beta3*X[i,2]*X[i,1]
+   # log-linear model for abundance: UFC + TRBA + UFC:TRBA+Unit
+ log(lambda[i])<- beta0 + beta1*X[i,1] + beta2*X[i,2] + beta3*X[i,2]*X[i,1]+beta4*X[i,3]
 }
 }
 
